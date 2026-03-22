@@ -1,0 +1,4 @@
+openreward
+numpy>=1.24
+scipy>=1.10
+pydantic>=2.0
