@@ -515,11 +515,11 @@ TUNING GUIDELINES:
     - Higher kP_v: faster transient response, but may oscillate
     - Higher kI_v: eliminates steady-state error, but slow response
     - Rule of thumb: kI_v / kP_v ~ 1000-5000 (integral time constant)
-    - Start with kP_v=0.05, kI_v=100 and adjust
 
   Current loop (kP_i, kI_i):
     - Should be significantly faster than voltage loop
-    - OMG defaults (kP_i=0.012, kI_i=90) work well for most cases
+    - If omitted, the OMG toolbox defaults are used; they are not tuned
+      for any particular circuit
     - Increase kP_i if current tracking is sluggish
     - Decrease kP_i if you see high-frequency oscillation
 

@@ -1583,5 +1583,60 @@ class TestCrossScenarioConsistency:
         asyncio.get_event_loop().run_until_complete(_test())
 
 
+# ======================================================================== #
+#  9. NO TUNING ANCHOR IN THE AGENT-FACING TEXT
+# ======================================================================== #
+
+class TestNoGainAnchor:
+    """The prompt and the info tool must not hand the agent a set of gains
+    to start from or claim that the fallback gains work well: a fixed
+    starting point is far from the best gains on every scenario, and an
+    agent that keeps it is not tuning."""
+
+    def test_text_suggests_no_gain_values(self):
+        import re
+        from microgrid import MicrogridGym, InfoParams
+
+        assignment = re.compile(r"k[PI]_[vi]\s*=\s*[0-9]")
+        for scenario in ("voltage_control", "current_control",
+                         "droop_control", "load_following"):
+            task = next(t for t in ALL_TASKS["train"]
+                        if t["scenario"] == scenario)
+            env = MicrogridGym(task)
+
+            async def _texts():
+                await env.setup()
+                prompt = (await env.get_prompt())[0].text
+                info = (await env.info(InfoParams())).blocks[0].text
+                await env.teardown()
+                return prompt, info
+
+            for text in asyncio.run(_texts()):
+                assert not assignment.search(text), assignment.search(text)
+                assert "work well" not in text
+
+    def test_documented_ranges_beat_untuned_gains(self):
+        """Gains inside the documented typical ranges beat an untuned
+        voltage loop on the fallback current loop by a wide margin on a
+        light-load task."""
+        from microgrid import MicrogridGym, SetControllerParams
+
+        task = next(t for t in ALL_TASKS["train"]
+                    if t["id"] == "voltage_control_train_031")
+
+        async def _episode(kP_v, kI_v, kP_i, kI_i):
+            env = MicrogridGym(task)
+            await env.setup()
+            result = None
+            while result is None or not result.finished:
+                result = await env.set_controller(SetControllerParams(
+                    kP_v=kP_v, kI_v=kI_v, kP_i=kP_i, kI_i=kI_i))
+            return result.reward
+
+        untuned = asyncio.run(_episode(0.05, 100.0, 0.012, 90.0))
+        tuned = asyncio.run(_episode(0.01, 300.0, 0.03, 300.0))
+        assert tuned > untuned + 0.1, (tuned, untuned)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
