@@ -20,11 +20,11 @@ MicrogridGym runs a lightweight numerical simulation (RK4 ODE integration) and r
 
 ## License
 
-[GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html) (matching the original OMG toolbox license).
+[MIT](https://opensource.org/licenses/MIT). The original OMG toolbox is released under GPLv3; this environment reimplements its physics in Python and does not ship OMG code.
 
 ## Tasks
 
-There are 126 tasks across 4 scenario types and 2 splits:
+There are 99 tasks in the `train` split and 27 in `test`, across 4 scenario types:
 
 | Scenario | Description | Agent Action | Steps | Train | Test |
 |----------|-------------|-------------|-------|-------|------|
@@ -53,13 +53,13 @@ $$\text{current\_err} = \frac{1}{N}\sum_{t}\sum_{k=1}^{3} \sqrt{\frac{|i_{\text{
 
 $$\text{barrier} = -\frac{1}{N}\sum_{t}\sum_{k=1}^{3} \mu \cdot \ln\left(1 - \frac{\max(|i_k| - i_{\text{nom}},\, 0)}{i_{\text{lim}} - i_{\text{nom}}}\right)$$
 
-where $\mu = 2$, $i_{\text{nom}} = 20\text{A}$, $i_{\text{lim}} = 30\text{A}$.
+where $\mu = 2$ and $i_{\text{nom}}$, $i_{\text{lim}}$ are the task's nominal and limit currents (default 20 A and 30 A).
 
 **Step reward** (mapped to [0, 1]):
 
 $$\text{step\_reward} = \exp\left(-\frac{\text{voltage\_err} + \text{current\_err} + \text{barrier}}{3}\right)$$
 
-The episode reward is the mean of all step rewards.
+Each intermediate `set_controller` call returns that step's reward. The final call returns the episode reward, the mean of all step rewards. If the controller makes the simulation diverge, that step scores 0 and the episode ends with the mean so far.
 
 No LLM graders are used.
 
@@ -84,7 +84,7 @@ There are no further environment requirements; MicrogridGym works out of the box
 
 ## Safety
 
-Agents in MicrogridGym interact with a numerical simulation of power electronics. The environment does not connect to real hardware or external systems. Unstable controller parameters cause clean simulation termination with zero reward, not real-world damage.
+Agents in MicrogridGym interact with a numerical simulation of power electronics. The environment does not connect to real hardware or external systems. Unstable controller parameters end the simulated episode early with a zero step reward, not real-world damage.
 
 ## Citations
 
